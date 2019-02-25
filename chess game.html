@@ -1,0 +1,162 @@
+<link rel='stylesheet' href='https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css'>
+<!-- Jquery, ChessboardJS, Chess.JS, Datapay, Moneybutton -->
+<script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+<script src="chessboard.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js"></script>
+<script src='https://unpkg.com/datapay@0.0.8/dist/datapay.min.js'></script>
+<script src="https://www.moneybutton.com/moneybutton.js"></script>
+
+<link rel='stylesheet' href='chessboard.css'
+<body>
+<div id="board" style="width: 400px"></div>
+<p>Status: <span id="status"></span></p>
+<p>FEN: <span id="fen"></span></p>
+<p>PGN: <span id="pgn"></span></p>
+
+</body>
+<script src="script.js"></script>
+<script>
+var address = ''
+var identity = ''
+var chessdata = ''
+var pgndata = ''
+function newKey () {
+  var privateKey = new datapay.bsv.PrivateKey();
+  address = privateKey.toAddress().toString();
+}
+
+function newGame () {
+  newKey();
+   identity = "$"+address+"$"
+  document.getElementById('identifier').innerHTML = 'identifier is ' + identity
+
+   chessdata = "%"+document.getElementById('fen').innerHTML+"%"
+  document.getElementById('gamedata').innerHTML = 'gamedata is ' + chessdata
+
+  pgndata = "^"+document.getElementById('pgn').innerHTML+"^"
+ document.getElementById('pgndiv').innerHTML = 'gamedata is ' + pgndata
+}
+
+</script>
+<body>
+<button class="btn btn-primary" onclick='newGame()'>make new game / save game state</button>
+<button class="btn btn-success" onclick='paybutton()'>upload with money button  amount: "0.00038"</button>
+<button class="btn btn-dark" onclick='fetchGameState()'>fetch game state</button>
+<button class="btn btn-info" onclick='save()'>save default game with form</button>
+<input type="button" class="btn btn-secondary" id="setRuyLopezBtn" value="transform game state to board" />
+
+<div id='identifier'></div>
+<div id='gamedata'></div>
+<div id='pgndiv'></div>
+<div id='mb-div'></div>
+<form>
+  <input type="text" id="input_id" value="Enter Game ID Here" onfocus="this.value=''">
+  <div id="alert" style="color: red"></div>
+</form>
+</body>
+<!-- pay with money button script -->
+<script>
+  var xx =''
+  var yy = ''
+   function paybutton(){
+     var payload = identity+ ' '+ chessdata+ ' '+pgndata
+
+   const div = document.getElementById('mb-div')
+   moneyButton.render(div, {
+     amount: "0.00038",
+     to: "535",
+     currency: "USD",
+     label: "swipe",
+     buttonId: "234325",
+     buttonData: "{}",
+     type: "tip",
+     opReturn: payload,
+     onPayment: function (arg) { console.log('onPayment', arg) },
+     onError: function (arg) { console.log('onError', arg) }
+   })
+   }
+ </script>
+
+ <script>
+
+
+   var  defaultgame = localStorage.getItem('defaultgame')
+   document.getElementById('input_id').value=defaultgame
+
+   function fetchGameState(){
+
+var variable = document.getElementById('input_id').value;
+
+ // The query we constructed from step 2.
+ var query = {
+   "v": 3,
+   "q": {
+     "find": {
+             "$text": { "$search": variable }
+             // 13C68vyfM6FGwQujYNDnbbf2Be8F3p7vBf
+     },
+     "limit": 1
+   },
+   "r": {
+     "f": "[ .[] | {msg: .out[0].s3} ]"
+   }
+ }
+
+
+ // Turn the query into base64 encoded string.
+ // This is required for accessing a public bitdb node
+ var b64 = btoa(JSON.stringify(query));
+ var url = "https://babel.bitdb.network/q/1DHDifPvtPgKFPZMRSxmVHhiPvFmxZwbfh/" + b64;
+
+ // Attach API KEY as header
+ var header = {
+   headers: { key: ['16Axd9uwgc3Q91KtqGXpFpvZUgbSG14VfF'] }
+ };
+
+ // Make an HTTP request to bitdb.network public endpoint
+ fetch(url, header).then(function(r) {
+   return r.json()
+ }).then(function(r) {
+   // "r.c" stands for confirmed transactions response array
+   // Parse the response and render the results on the screen
+
+   r.c.forEach(function(output) {
+     var div = document.createElement("div");
+     div.innerHTML = output.msg;
+     div.setAttribute('id','divvy');
+     document.body.appendChild(div)
+   })
+
+   r.u.forEach(function(output) {
+     var div = document.createElement("div");
+     div.innerHTML = output.msg;
+     div.setAttribute('id','divvy');
+     document.body.appendChild(div)
+   })
+ })
+ }
+
+
+ function save() {
+   defaultgame = document.getElementById('input_id').value;
+   localStorage.setItem('defaultgame', defaultgame);
+
+ }
+
+
+ $('#setRuyLopezBtn').on('click', function() {
+   xx = document.getElementById('divvy').innerHTML
+    yy = xx.substring(xx.indexOf("^")+1, xx.lastIndexOf("^"));
+   xx = xx.substring(xx.indexOf("%")+1, xx.lastIndexOf("%"));
+  board.position(xx)
+
+
+
+  $(function(){
+    $('#fen').html(xx);
+    $('#pgn').html(yy);
+  });
+ });
+
+
+ </script>
